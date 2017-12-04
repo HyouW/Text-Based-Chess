@@ -6,15 +6,6 @@
  * ICS4U1-01
  */
 
-/*
- * Error Recreation:
- * e2 to e4
- * b8 to c6
- * e4 to e5
- * c6 to e5
- * e1 to e2
- */
-
 #include <iostream>
 #include <cmath>
 
@@ -91,8 +82,14 @@ public:
 			int dir = player_check(current[0]);
 			dy *= dir;
 			if (((((start.y%5 == 1 && dy == 2) || dy == 1) && dx == 0 && xy_check(game, start, end) && final == "  ")
-				|| (final != "  " && final[0] == enemy_id && (dx == 1 && dy == 1))))
+				|| (final != "  " && final[0] == enemy_id && (dx == 1 && dy == 1)))){
 				Piece::move(game, start, end);
+				if (end.y % 7 == 0){
+					final = current[0];
+					final += 'Q';
+					game.matrix[end.y][end.x] = final;
+				}
+			}
 			else
 				cout << "Invalid move" << endl;
 		}
@@ -168,7 +165,7 @@ public:
 
 class King: public Piece{
 public:
-	void move(GameBoard &game, Pos start, Pos end){
+	void move(GameBoard &game, Pos start, Pos end, Pos &king){
 		string current = game.matrix[start.y][start.x];
 		string final = game.matrix[end.y][end.x];
 		char enemy_id = current[0] + 10*player_check(current[0]);
@@ -176,8 +173,10 @@ public:
 		int dy = abs(end.y-start.y);
 		if (current != "  "){
 			if ((dx <= 1 && dy <= 1) && (dx != 0 || dy != 0) && checkmate(game, end, current[0])
-				&& (final[0] == enemy_id || final == "  "))
+				&& (final[0] == enemy_id || final == "  ")){
 				Piece::move(game, start, end);
+				king = end;
+			}
 			else
 				cout << "Invalid move" << endl;
 		}
@@ -262,193 +261,18 @@ bool check_pawn(GameBoard &game, char enemy_id, Pos pos){
 	return false;
 }
 bool check_piece(char enemy_id, char piece_id, string piece){
-	return (piece[0] == enemy_id && piece[1] = piece_id);
+	return (piece[0] == enemy_id && piece[1] == piece_id);
 }
-bool check(GameBoard  &game, char enemy_id, Pos pos){
-/*	if (pos.y == 0){
-		if (pos.x <= 1){
-			p1 = game.getPiece(pos.x + 1, pos.y + 2);
-			p2 = game.getPiece(pos.x + 2, pos.y + 1);
-			if (pos.x == 0 && pos.y == 0)
-				if (check(enemy_id, 'N', p1, p2))//case1
-					return true;
-			else if (pos.x == 1 && pos.y == 0){
-				p3 = game.getPiece(pos.x - 1, pos.y + 2);
-				if (check(enemy_id, 'N', p1, p2, p3))//case2
-					return true;
-			}
-			else if (pos.x == 0 && pos.y == 1){
-
-			}
-			else if (pos.x == 1 && pos.y == 1){
-
-			}
-		}
-		else if (pos.x >= 6){
-			p1 = game.getPiece(pos.x - 1, pos.y + 2);
-			p2 = game.getPiece(pos.x - 2, pos.y + 1);
-			p3 = game.getPiece(pos.x + 1, pos.y + 2);
-			if (pos.x == 7 && check(enemy_id, 'N', p1, p2))//case3
-				return true;
-			else if (pos.x == 6 && check(enemy_id, 'N', p1, p2, p3))//case4
+bool check_cases(GameBoard &game, char enemy_id, char piece_id, Pos arr[8]){
+	for (int i = 0; i < 8; i++){
+		if ((arr[i].x <= 7 && arr[i].x >= 0) && (arr[i].y <= 7 && arr[i].y >= 0)){
+			string piece = game.getPiece(arr[i].x, arr[i].y);
+			if (check_piece(enemy_id, piece_id, piece))
 				return true;
 		}
-		else{
-			p1 = game.getPiece(pos.x + 1, pos.y + 2);
-			p2 = game.getPiece(pos.x + 2, pos.y + 1);
-			p3 = game.getPiece(pos.x - 1, pos.y + 2);
-			p4 = game.getPiece(pos.x - 2, pos.y + 1);
-			if (check(enemy_id, 'N', p1, p2, p3, p4))//case5
-				return true;
-		}
-	}
-	else if (pos.y == 7){
-		if (pos.x <= 1){
-			p1 = game.getPiece(pos.x + 1, pos.y - 2);
-			p2 = game.getPiece(pos.x + 2, pos.y - 1);
-			p3 = game.getPiece(pos.x - 1, pos.y - 2);
-			if (pos.x == 0 && check(enemy_id, 'N', p1, p2))//case6
-				return true;
-			else if (pos.x == 1 && check(enemy_id, 'N', p1, p2, p3))//case7
-				return true;
-		}
-		else if (pos.x >= 6){
-			p1 = game.getPiece(pos.x - 1, pos.y - 2);
-			p2 = game.getPiece(pos.x - 2, pos.y - 1);
-			p3 = game.getPiece(pos.x + 1, pos.y - 2);
-			if (pos.x == 7 && check(enemy_id, 'N', p1, p2))//case8
-				return true;
-			else if (pos.x == 6 && check(enemy_id, 'N', p1, p2, p3))//case9
-				return true;
-		}
-		else{
-			p1 = game.getPiece(pos.x + 1, pos.y - 2);
-			p2 = game.getPiece(pos.x + 2, pos.y - 1);
-			p3 = game.getPiece(pos.x - 1, pos.y - 2);
-			p4 = game.getPiece(pos.x - 2, pos.y - 1);
-			if (check(enemy_id, 'N', p1, p2, p3, p4))//case10
-				return true;
-		}
-	}
-	else if (pos.x <= 1){
-		p1 = game.getPiece(pos.x + 1, pos.y + 2);
-		p2 = game.getPiece(pos.x + 2, pos.y + 1);
-		p3 = game.getPiece(pos.x + 1, pos.y - 2);
-		p4 = game.getPiece(pos.x + 2, pos.y - 1);
-		if (check(enemy_id, 'N', p1, p2, p3, p4))
-			return true;
-	}
-	else if (pos.x >= 6){
-		p1 = game.getPiece(pos.x - 1, pos.y + 2);
-		p2 = game.getPiece(pos.x - 2, pos.y + 1);
-		p3 = game.getPiece(pos.x - 1, pos.y - 2);
-		p4 = game.getPiece(pos.x - 2, pos.y - 1);
-		if (check(enemy_id, 'N', p1, p2, p3, p4))
-			return true;
-	}
-	else{
-		cout << "5" << endl;
-		p1 = game.getPiece(pos.x + 1, pos.y + 2);
-		p2 = game.getPiece(pos.x + 2, pos.y + 1);
-		p3 = game.getPiece(pos.x - 1, pos.y + 2);
-		p4 = game.getPiece(pos.x - 2, pos.y + 1);
-		p5 = game.getPiece(pos.x - 1, pos.y + 2);
-		p6 = game.getPiece(pos.x - 2, pos.y + 1);
-		p7 = game.getPiece(pos.x - 1, pos.y - 2);
-		p8 = game.getPiece(pos.x - 2, pos.y - 1);
-		if (check(enemy_id, 'N', p1, p2, p3, p4, p5, p6, p7, p8))
-			return true;
 	}
 	return false;
 }
-bool check_king(GameBoard &game, char enemy_id, Pos pos){
-	string p1, p2, p3, p4, p5, p6, p7, p8;
-	if (pos.y == 0){
-		p1 = game.getPiece(pos.x, pos.y + 1);
-		if (pos.x == 0){
-			p2 = game.getPiece(pos.x + 1, pos.y);
-			p3 = game.getPiece(pos.x + 1, pos.y + 1);
-			if ((p1[0] == enemy_id && p1[1] == 'K')
-			 || (p2[0] == enemy_id && p2[1] == 'K')
-			 || (p3[0] == enemy_id && p3[1] == 'K'))
-				return true;
-		}
-		else if (pos.x == 7){
-			p2 = game.getPiece(pos.x - 1, pos.y);
-			p3 = game.getPiece(pos.x - 1, pos.y + 1);
-			if ((p1[0] == enemy_id && p1[1] == 'K')
-			 || (p2[0] == enemy_id && p2[1] == 'K')
-			 || (p3[0] == enemy_id && p3[1] == 'K'))
-				return true;
-		}
-	}
-	else if (pos.y == 7){
-		p1 = game.getPiece(pos.x, pos.y - 1);
-		if (pos.x == 0){
-			p2 = game.getPiece(pos.x + 1, pos.y);
-			p3 = game.getPiece(pos.x + 1, pos.y - 1);
-			if ((p1[0] == enemy_id && p1[1] == 'K')
-			 || (p2[0] == enemy_id && p2[1] == 'K')
-			 || (p3[0] == enemy_id && p3[1] == 'K'))
-				return true;
-		}
-		else if (pos.x == 7){
-			p2 = game.getPiece(pos.x - 1, pos.y);
-			p3 = game.getPiece(pos.x - 1, pos.y - 1);
-			if ((p1[0] == enemy_id && p1[1] == 'K')
-			 || (p2[0] == enemy_id && p2[1] == 'K')
-			 || (p3[0] == enemy_id && p3[1] == 'K'))
-				return true;
-		}
-	}
-	else if (pos.x == 0){
-		p1 = game.getPiece(pos.x, pos.y+1);
-		p2 = game.getPiece(pos.x, pos.y-1);
-		p3 = game.getPiece(pos.x + 1, pos.y);
-		p4 = game.getPiece(pos.x + 1, pos.y + 1);
-		p5 = game.getPiece(pos.x + 1, pos.y - 1);
-		if ((p1[0] == enemy_id && p1[1] == 'K')
-		 || (p2[0] == enemy_id && p2[1] == 'K')
-		 || (p3[0] == enemy_id && p3[1] == 'K')
-		 || (p4[0] == enemy_id && p4[1] == 'K')
-		 || (p5[0] == enemy_id && p5[1] == 'K'))
-			return true;
-	}
-	else if (pos.x == 7){
-		p1 = game.getPiece(pos.x, pos.y+1);
-		p2 = game.getPiece(pos.x, pos.y-1);
-		p3 = game.getPiece(pos.x - 1, pos.y);
-		p4 = game.getPiece(pos.x - 1, pos.y + 1);
-		p5 = game.getPiece(pos.x - 1, pos.y - 1);
-		if ((p1[0] == enemy_id && p1[1] == 'K')
-		 || (p2[0] == enemy_id && p2[1] == 'K')
-		 || (p3[0] == enemy_id && p3[1] == 'K')
-		 || (p4[0] == enemy_id && p4[1] == 'K')
-		 || (p5[0] == enemy_id && p5[1] == 'K'))
-			return true;
-	}
-	else{
-		p1 = game.getPiece(pos.x, pos.y+1);
-		p2 = game.getPiece(pos.x, pos.y-1);
-		p3 = game.getPiece(pos.x+1, pos.y);
-		p4 = game.getPiece(pos.x-1, pos.y);
-		p5 = game.getPiece(pos.x+1, pos.y+1);
-		p6 = game.getPiece(pos.x+1, pos.y-1);
-		p7 = game.getPiece(pos.x-1, pos.y+1);
-		p8 = game.getPiece(pos.x-1, pos.y-1);
-		if ((p1[0] == enemy_id && p1[1] == 'K')
-		 || (p2[0] == enemy_id && p2[1] == 'K')
-		 || (p3[0] == enemy_id && p3[1] == 'K')
-		 || (p4[0] == enemy_id && p4[1] == 'K')
-		 || (p5[0] == enemy_id && p5[1] == 'K')
-		 || (p6[0] == enemy_id && p6[1] == 'K')
-		 || (p7[0] == enemy_id && p7[1] == 'K')
-		 || (p8[0] == enemy_id && p8[1] == 'K'))
-			return true;
-	}
-	return false;*/
-}
-
 bool checkmate(GameBoard &game, Pos pos, char ID){
 	char enemy_id = ID + 10*player_check(ID);
 	int x = pos.x, y = pos.y;
@@ -463,6 +287,9 @@ bool checkmate(GameBoard &game, Pos pos, char ID){
 	int greater_x = (x > x2) ? x : x2;
 	int greater_y = (y > y2) ? y : y2;
 	int greater = (greater_x > greater_y) ? greater_x : greater_y;
+
+	Pos king_arr[8] = {{x+1, y}, {x+1, y+1}, {x, y+1}, {x-1, y+1}, {x-1, y}, {x-1, y-1}, {x, y-1}, {x+1, y-1}};
+	Pos horse_arr[8] = {{x+2, y+1}, {x+1, y+2}, {x-1, y+2}, {x-2, y+1}, {x-2, y-1}, {x-1, y-2}, {x+1, y-2}, {x+2, y-1}};
 
 	for (int i = 1; i <= greater; i++){
 		string piece;
@@ -518,13 +345,38 @@ bool checkmate(GameBoard &game, Pos pos, char ID){
 	}
 	if (check_pawn(game, enemy_id, pos))
 		return false;
-	else if (check_horse(game, enemy_id, pos))
+	else if (check_cases(game, enemy_id, 'N', horse_arr))
 		return false;
-	else if (check_king(game, enemy_id, pos))
+	else if (check_cases(game, enemy_id, 'K', king_arr))
 		return false;
 	return true;
 }
-
+bool checkmate_all(GameBoard &game, Pos pos, char ID){
+	int x = pos.x, y = pos.y;
+	Pos arr[8] = {{x+1, y}, {x+1, y+1}, {x, y+1}, {x-1, y+1}, {x-1, y}, {x-1, y-1}, {x, y-1}, {x+1, y-1}};
+	bool cases[8];
+	for (int i = 0; i < 8; i++){
+		if ((arr[i].x <= 7 && arr[i].x >= 0) && (arr[i].y <= 7 && arr[i].y >= 0)){
+			if (checkmate(game, arr[i], ID))//No checkmate for this pos
+				cases[i] = false;
+			else//Checkmates for this pos
+				cases[i] = true;
+		}
+		else
+			cases[i] = true;//Out of bounds, consider it a checkmate
+	}
+	return cases[0] && cases[1] && cases[2] && cases[3] && cases[4] && cases[5] && cases[6] && cases[7] && cases[8];
+}
+bool king_is_alone(GameBoard &game, char ID){
+	for (int i = 0; i < 8; i++){
+		for (int j = 0; j < 8; j++){
+			string p = game.getPiece(i, j);
+			if (p[0] == ID && (p[1] == 'P' || p[1] == 'R' || p[1] == 'B' || p[1] == 'N' || p[1] == 'Q'))
+				return false;
+		}
+	}
+	return true;
+}
 bool validateFormat(string move){
 	if (move.length() != 8)
 		return false;
@@ -556,15 +408,35 @@ int main(void){
 	game.display();
 	bool play = true;
 	string action;
-	Player white;
-	Player black;
+	Player white, black;
+	Pos white_king = {4, 0}, black_king = {4, 7};
 	char turn = ' ';
 
 	while (play){
-		if (turn == ' ')
-			cout << "White's turn: " << endl;
-		else
-			cout << "Black's turn: " << endl;
+		if (turn == ' '){
+			if (!checkmate(game, black_king, '*')){
+				cout << "Checkmate. White wins!" << endl;
+				break;
+			}
+			else if (checkmate_all(game, white_king, ' ') && king_is_alone(game, ' ')){
+				cout << "Checkmate. Black wins!" << endl;
+				break;
+			}
+			else
+				cout << "White's turn: " << endl;
+		}
+		else{
+			if (!checkmate(game, white_king, ' ')){
+				cout << "Checkmate. Black wins!" << endl;
+				break;
+			}
+			else if (checkmate_all(game, black_king, '*') && king_is_alone(game, '*')){
+				cout << "Checkmate. White wins!" << endl;
+				break;
+			}
+			else
+				cout << "Black's turn: " << endl;
+		}
 		cout << "Enter a move: ";
 		getline(cin, action);
 		action.erase(action.length() - 1);
@@ -581,30 +453,33 @@ int main(void){
 			cout << "End: " << pos2.x << ", " << pos2.y << endl;
 
 			string piece = game.getPiece(pos1.x, pos1.y);
-			char ID = piece[0];
+			char player_ID = piece[0], piece_ID = piece[1];
 
-			if (piece[1] == 'P' && turn == ID){
+			if (piece_ID == 'P' && turn == player_ID){
 				(turn == ' ') ? white.p.move(game, pos1, pos2) : black.p.move(game, pos1, pos2);
 			}
-			else if (piece[1] == 'R' && turn == ID){
+			else if (piece_ID == 'R' && turn == player_ID){
 				(turn == ' ') ? white.r.move(game, pos1, pos2) : black.r.move(game, pos1, pos2);
 			}
-			else if (piece[1] == 'B' && turn == ID){
+			else if (piece_ID == 'B' && turn == player_ID){
 				(turn == ' ') ? white.b.move(game, pos1, pos2) : black.b.move(game, pos1, pos2);
 			}
-			else if (piece[1] == 'N' && turn == ID){
+			else if (piece_ID == 'N' && turn == player_ID){
 				(turn == ' ') ? white.n.move(game, pos1, pos2) : black.n.move(game, pos1, pos2);
 			}
-			else if (piece[1] == 'Q' && turn == ID){
+			else if (piece_ID == 'Q' && turn == player_ID){
 				(turn == ' ') ? white.q.move(game, pos1, pos2) : black.q.move(game, pos1, pos2);
 			}
-			else if (piece[1] == 'K' && turn == ID){
-				(turn == ' ') ? white.k.move(game, pos1, pos2) : black.k.move(game, pos1, pos2);
+			else if (piece_ID == 'K' && turn == player_ID){
+				if (turn == ' ')
+					white.k.move(game, pos1, pos2, white_king);
+				else
+					black.k.move(game, pos1, pos2, black_king);
 			}
 			else
 				cout << "Invalid move" << endl;
 
-			if (game.getPiece(pos1.x, pos1.y) == "  ")
+			if (game.getPiece(pos1.x, pos1.y) == "  " && piece != "  ")
 				turn = (turn == ' ') ? '*' : ' ';
 
 			game.display();
