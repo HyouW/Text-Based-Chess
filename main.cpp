@@ -49,30 +49,26 @@ private:
 public:
 	void display(void){
 		for (int row = 7; row >= 0; row--){
-			cout << " +---+---+---+---+---+---+---+---+" << endl;
+			cout << "  +---+---+---+---+---+---+---+---+" << endl;
 			cout << row + 1;
-			cout << "|" << matrix[row][0] << " |" << matrix[row][1] << " |" << matrix[row][2] << " |" << matrix[row][3] <<
+			cout <<" |" << matrix[row][0] << " |" << matrix[row][1] << " |" << matrix[row][2] << " |" << matrix[row][3] <<
 				   " |" << matrix[row][4] << " |" << matrix[row][5] << " |" << matrix[row][6] << " |" << matrix[row][7] << " |" << endl;
 		}
-		cout << " +---+---+---+---+---+---+---+---+" << endl;
-		cout << "   a   b   c   d   e   f   g   h " << endl;
+		cout << "  +---+---+---+---+---+---+---+---+" << endl;
+		cout << "    a   b   c   d   e   f   g   h " << endl;
 	}
 	string getPiece(int x, int y){
 		return matrix[y][x];
 	}
 	friend class Piece;
 	friend class Pawn;
-	friend class Rook;
-	friend class Bishop;
-	friend class Knight;
-	friend class Queen;
-	friend class King;
 };
 
 int player_check(char);
 bool xy_check(GameBoard&, Pos, Pos);
 bool checkmate(GameBoard&, Pos, char);
 bool checkmate_3(GameBoard&, Pos, Pos, Pos, char);
+bool check_move(GameBoard&, Pos, Pos);
 
 class Piece{
 public:
@@ -114,8 +110,8 @@ public:
 class Rook: public Piece{
 public:
 	void move(GameBoard &game, Pos start, Pos end, Player &player){
-		string current = game.matrix[start.y][start.x];
-		string final = game.matrix[end.y][end.x];
+		string current = game.getPiece(start.x, start.y);
+		string final = game.getPiece(end.x, end.y);
 		char enemy_id = current[0] + 10*player_check(current[0]);
 		int dx = abs(end.x-start.x);
 		int dy = abs(end.y-start.y);
@@ -137,8 +133,8 @@ public:
 class Bishop: public Piece{
 public:
 	void move(GameBoard &game, Pos start, Pos end){
-		string current = game.matrix[start.y][start.x];
-		string final = game.matrix[end.y][end.x];
+		string current = game.getPiece(start.x, start.y);
+		string final = game.getPiece(end.x, end.y);
 		char enemy_id = current[0] + 10*player_check(current[0]);
 		int dx = abs(end.x-start.x);
 		int dy = abs(end.y-start.y);
@@ -154,8 +150,8 @@ public:
 class Knight: public Piece{
 public:
 	void move(GameBoard &game, Pos start, Pos end){
-		string current = game.matrix[start.y][start.x];
-		string final = game.matrix[end.y][end.x];
+		string current = game.getPiece(start.x, start.y);
+		string final = game.getPiece(end.x, end.y);
 		char enemy_id = current[0] + 10*player_check(current[0]);
 		int dx = abs(end.x-start.x);
 		int dy = abs(end.y-start.y);
@@ -171,8 +167,8 @@ public:
 class Queen: public Piece{
 public:
 	void move(GameBoard &game, Pos start, Pos end){
-		string current = game.matrix[start.y][start.x];
-		string final = game.matrix[end.y][end.x];
+		string current = game.getPiece(start.x, start.y);
+		string final = game.getPiece(end.x, end.y);
 		char enemy_id = current[0] + 10*player_check(current[0]);
 		if (current != "  "){
 			if (xy_check(game, start, end) && (final[0] == enemy_id || final == "  "))
@@ -186,15 +182,11 @@ public:
 class King: public Piece{
 public:
 	void move(GameBoard &game, Pos start, Pos end, Player &player){
-		string current = game.matrix[start.y][start.x];
-		string final = game.matrix[end.y][end.x];
+		string current = game.getPiece(start.x, start.y);
 		char id = current[0];
-		char enemy_id = id + 10*player_check(id);
 		int dx = abs(end.x-start.x);
-		int dy = abs(end.y-start.y);
 		if (current != "  "){
-			if ((dx <= 1 && dy <= 1) && (dx != 0 || dy != 0) && !checkmate(game, end, id)
-				&& (final[0] == enemy_id || final == "  ")){
+			if (check_move(game, start, end)){
 				Piece::move(game, start, end);
 				player.king = end;
 				player.k_moved = true;
@@ -208,6 +200,7 @@ public:
 					if (xy_check(game, start, {0, 0}) && checkmate_3(game, start, pos2, pos3, id)){
 						Piece::move(game, start, end);
 						Piece::move(game, {0, 0}, pos2);
+						player.king = end;
 						player.k_moved = true;
 						return;
 					}
@@ -218,6 +211,7 @@ public:
 					if (xy_check(game, start, {7, 0}) && checkmate_3(game, start, pos2, pos3, id)){
 						Piece::move(game, start, end);
 						Piece::move(game, {7, 0}, pos2);
+						player.king = end;
 						player.k_moved = true;
 						return;
 					}
@@ -392,24 +386,40 @@ bool checkmate_3(GameBoard &game, Pos start, Pos pos2, Pos pos3, char id){
 bool checkmate_all(GameBoard &game, Pos pos, char ID){
 	int x = pos.x, y = pos.y;
 	Pos arr[8] = {{x+1, y}, {x+1, y+1}, {x, y+1}, {x-1, y+1}, {x-1, y}, {x-1, y-1}, {x, y-1}, {x+1, y-1}};
-	bool cases[8];
 	for (int i = 0; i < 8; i++){
 		if ((arr[i].x <= 7 && arr[i].x >= 0) && (arr[i].y <= 7 && arr[i].y >= 0)){
 			if (!checkmate(game, arr[i], ID))//No checkmate for this pos
-				cases[i] = false;
-			else//Checkmates for this pos
-				cases[i] = true;
+				return false;
 		}
-		else
-			cases[i] = true;//Out of bounds, consider it a checkmate
 	}
-	return cases[0] && cases[1] && cases[2] && cases[3] && cases[4] && cases[5] && cases[6] && cases[7] && cases[8];
+	return true;
 }
 bool king_is_alone(GameBoard &game, char ID){
 	for (int i = 0; i < 8; i++){
 		for (int j = 0; j < 8; j++){
 			string p = game.getPiece(i, j);
 			if (p[0] == ID && (p[1] == 'P' || p[1] == 'R' || p[1] == 'B' || p[1] == 'N' || p[1] == 'Q'))
+				return false;
+		}
+	}
+	return true;
+}
+bool check_move(GameBoard &game, Pos start, Pos end){
+	string current = game.getPiece(start.x, start.y);
+	string final = game.getPiece(end.x, end.y);
+	char id = current[0];
+	char enemy_id = id + 10*player_check(id);
+	int dx = abs(end.x-start.x);
+	int dy = abs(end.y-start.y);
+	return ((dx <= 1 && dy <= 1) && (dx != 0 || dy != 0) && !checkmate(game, end, id)
+			&& (final[0] == enemy_id || final == "  "));
+}
+bool king_is_stuck(GameBoard &game, Pos pos){
+	int x = pos.x, y = pos.y;
+	Pos arr[8] = {{x+1, y}, {x+1, y+1}, {x, y+1}, {x-1, y+1}, {x-1, y}, {x-1, y-1}, {x, y-1}, {x+1, y-1}};
+	for (int i = 0; i < 8; i++){
+		if ((arr[i].x <= 7 && arr[i].x >= 0) && (arr[i].y <= 7 && arr[i].y >= 0)){
+			if (check_move(game, pos, arr[i]))//No checkmate for this pos
 				return false;
 		}
 	}
@@ -466,11 +476,13 @@ int main(void){
 				cout << "Checkmate. White wins!" << endl;
 				break;
 			}
-			else if (king_is_alone(game, ' ')){
-				if (checkmate_all(game, white.king, ' ')){
-					cout << "Checkmate. Black wins!" << endl;
-					break;
-				}
+			else if (king_is_alone(game, ' ') && checkmate_all(game, white.king, ' ')){
+				cout << "Checkmate. Black wins!" << endl;
+				break;
+			}
+			else if (checkmate(game, white.king, ' ') && king_is_stuck(game, white.king)){
+				cout << "Checkmate. Black wins!" << endl;
+				break;
 			}
 			else
 				cout << "White's turn: " << endl;
@@ -480,11 +492,13 @@ int main(void){
 				cout << "Checkmate. Black wins!" << endl;
 				break;
 			}
-			else if (king_is_alone(game, '*')){
-				if (checkmate_all(game, black.king, '*')){
-					cout << "Checkmate. White wins!" << endl;
-					break;
-				}
+			else if (king_is_alone(game, '*') && checkmate_all(game, black.king, '*')){
+				cout << "Checkmate. White wins!" << endl;
+				break;
+			}
+			else if (checkmate(game, black.king, '*') && king_is_stuck(game, black.king)){
+				cout << "Checkmate. White wins!" << endl;
+				break;
 			}
 			else
 				cout << "Black's turn: " << endl;
