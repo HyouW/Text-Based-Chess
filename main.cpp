@@ -19,11 +19,22 @@ class Knight;
 class Queen;
 class King;
 
-
 struct Pos{
 	int x, y;
 };
 
+struct Player{
+	Pawn *p;
+	Rook *r;
+	Bishop *b;
+	Knight *n;
+	Queen *q;
+	King *k;
+	Pos king;
+	bool k_moved = false;
+	bool r1_moved = false;
+	bool r2_moved = false;
+};
 
 class GameBoard{
 private:
@@ -61,6 +72,7 @@ public:
 int player_check(char);
 bool xy_check(GameBoard&, Pos, Pos);
 bool checkmate(GameBoard&, Pos, char);
+bool checkmate_3(GameBoard&, Pos, Pos, Pos, char);
 
 class Piece{
 public:
@@ -85,8 +97,7 @@ public:
 				|| (final != "  " && final[0] == enemy_id && (dx == 1 && dy == 1)))){
 				Piece::move(game, start, end);
 				if (end.y % 7 == 0){
-					final = current[0];
-					final += 'Q';
+					promote(current[0], final);
 					game.matrix[end.y][end.x] = final;
 				}
 			}
@@ -94,11 +105,15 @@ public:
 				cout << "Invalid move" << endl;
 		}
 	}
+	void promote(char ID, string &final){
+		final = ID;
+		final += 'Q';
+	}
 };
 
 class Rook: public Piece{
 public:
-	void move(GameBoard &game, Pos start, Pos end){
+	void move(GameBoard &game, Pos start, Pos end, Player &player){
 		string current = game.matrix[start.y][start.x];
 		string final = game.matrix[end.y][end.x];
 		char enemy_id = current[0] + 10*player_check(current[0]);
@@ -106,8 +121,13 @@ public:
 		int dy = abs(end.y-start.y);
 		if (current != "  "){
 			if (((dx != 0 && dy == 0) || (dx == 0 && dy != 0)) && xy_check(game, start, end)
-				&& (final[0] == enemy_id || final == "  "))
+				&& (final[0] == enemy_id || final == "  ")){
 				Piece::move(game, start, end);
+				if (start.x == 0)
+					player.r1_moved = true;
+				else if (start.y == 7)
+					player.r2_moved = true;
+			}
 			else
 				cout << "Invalid move" << endl;
 		}
@@ -165,32 +185,47 @@ public:
 
 class King: public Piece{
 public:
-	void move(GameBoard &game, Pos start, Pos end, Pos &king){
+	void move(GameBoard &game, Pos start, Pos end, Player &player){
 		string current = game.matrix[start.y][start.x];
 		string final = game.matrix[end.y][end.x];
-		char enemy_id = current[0] + 10*player_check(current[0]);
+		char id = current[0];
+		char enemy_id = id + 10*player_check(id);
 		int dx = abs(end.x-start.x);
 		int dy = abs(end.y-start.y);
 		if (current != "  "){
-			if ((dx <= 1 && dy <= 1) && (dx != 0 || dy != 0) && checkmate(game, end, current[0])
+			if ((dx <= 1 && dy <= 1) && (dx != 0 || dy != 0) && !checkmate(game, end, id)
 				&& (final[0] == enemy_id || final == "  ")){
 				Piece::move(game, start, end);
-				king = end;
+				player.king = end;
+				player.k_moved = true;
+				return;
 			}
-			else
-				cout << "Invalid move" << endl;
+			else if (!player.k_moved && dx == 2){
+				Pos pos2, pos3;
+				if (end.x == start.x - 2 && !player.r1_moved){
+					pos2 = {start.x - 1, start.y};
+					pos3 = {start.x - 2, start.y};
+					if (xy_check(game, start, {0, 0}) && checkmate_3(game, start, pos2, pos3, id)){
+						Piece::move(game, start, end);
+						Piece::move(game, {0, 0}, pos2);
+						player.k_moved = true;
+						return;
+					}
+				}
+				else if (end.x == start.x + 2 && !player.r2_moved){
+					pos2 = {start.x + 1, start.y};
+					pos3 = {start.x + 2, start.y};
+					if (xy_check(game, start, {7, 0}) && checkmate_3(game, start, pos2, pos3, id)){
+						Piece::move(game, start, end);
+						Piece::move(game, {7, 0}, pos2);
+						player.k_moved = true;
+						return;
+					}
+				}
+			}
+			cout << "Invalid move" << endl;
 		}
 	}
-};
-
-struct Player{
-	Pawn p;
-	Rook r;
-	Bishop b;
-	Knight n;
-	Queen q;
-	King k;
-	char ID;
 };
 
 int player_check(char piece_id){
@@ -298,58 +333,61 @@ bool checkmate(GameBoard &game, Pos pos, char ID){
 			piece = game.getPiece(x - i, y);
 			end = {x-i, y};
 			if (check_straight(enemy_id, piece) && xy_check(game, pos, end))
-				return false;
+				return true;
 		}
 		if ((x2 - i) >= 0){
 			piece = game.getPiece(x + i, y);
 			end = {x+i, y};
 			if (check_straight(enemy_id, piece) && xy_check(game, pos, end))
-				return false;
+				return true;
 		}
 		if ((y - i) >= 0){
 			piece = game.getPiece(x, y - i);
 			end = {x, y-i};
 			if (check_straight(enemy_id, piece) && xy_check(game, pos, end))
-				return false;
+				return true;
 		}
 		if ((y2 - i) >= 0){
 			piece = game.getPiece(x, y + i);
 			end = {x, y+i};
 			if (check_straight(enemy_id, piece) && xy_check(game, pos, end))
-				return false;
+				return true;
 		}
 		if ((diag1 - i) >= 0){
 			piece = game.getPiece(x - i, y - i);
 			end = {x-i, y-i};
 			if (check_diagonal(enemy_id, piece) && xy_check(game, pos, end))
-				return false;
+				return true;
 		}
 		if ((diag2 - i) >= 0){
 			piece = game.getPiece(x - i, y + i);
 			end = {x-i, y+i};
 			if (check_diagonal(enemy_id, piece) && xy_check(game, pos, end))
-				return false;
+				return true;
 		}
 		if ((diag3 - i) >= 0){
 			piece = game.getPiece(x + i, y + i);
 			end = {x+i, y+i};
 			if (check_diagonal(enemy_id, piece) && xy_check(game, pos, end))
-				return false;
+				return true;
 		}
 		if ((diag4 - i) >= 0){
 			piece = game.getPiece(x + i, y - i);
 			end = {x+i, y-i};
 			if (check_diagonal(enemy_id, piece) && xy_check(game, pos, end))
-				return false;
+				return true;
 		}
 	}
 	if (check_pawn(game, enemy_id, pos))
-		return false;
+		return true;
 	else if (check_cases(game, enemy_id, 'N', horse_arr))
-		return false;
+		return true;
 	else if (check_cases(game, enemy_id, 'K', king_arr))
-		return false;
-	return true;
+		return true;
+	return false;
+}
+bool checkmate_3(GameBoard &game, Pos start, Pos pos2, Pos pos3, char id){
+	return (!checkmate(game, start, id) && !checkmate(game, pos2, id) && !checkmate(game, pos3, id));
 }
 bool checkmate_all(GameBoard &game, Pos pos, char ID){
 	int x = pos.x, y = pos.y;
@@ -357,7 +395,7 @@ bool checkmate_all(GameBoard &game, Pos pos, char ID){
 	bool cases[8];
 	for (int i = 0; i < 8; i++){
 		if ((arr[i].x <= 7 && arr[i].x >= 0) && (arr[i].y <= 7 && arr[i].y >= 0)){
-			if (checkmate(game, arr[i], ID))//No checkmate for this pos
+			if (!checkmate(game, arr[i], ID))//No checkmate for this pos
 				cases[i] = false;
 			else//Checkmates for this pos
 				cases[i] = true;
@@ -404,35 +442,49 @@ bool validateFormat(string move){
 }
 
 int main(void){
+
+	cout << "Welcome to Text-Based Chess!\n" << endl;
+	cout << "Moves should be inputted in the form: x# to x#" << endl;
+	cout << "The range of x is a-g & the range of # is 1-8\n" << endl;
+	cout << "Please enter valid moves according to the rules of chess" << endl;
+	cout << "Otherwise, the program will not accept the input\n" << endl;
+	cout << "If you would like to exit the game, " << endl;
+	cout << "enter 'quit' into the input\n" << endl;
+	cout << "Enjoy!\n" << endl;
+
 	GameBoard game;
 	game.display();
 	bool play = true;
 	string action;
 	Player white, black;
-	Pos white_king = {4, 0}, black_king = {4, 7};
+	white.king = {4, 0}, black.king = {4, 7};
 	char turn = ' ';
 
 	while (play){
 		if (turn == ' '){
-			if (!checkmate(game, black_king, '*')){
+			if (checkmate(game, black.king, '*')){
 				cout << "Checkmate. White wins!" << endl;
 				break;
 			}
-			else if (checkmate_all(game, white_king, ' ') && king_is_alone(game, ' ')){
-				cout << "Checkmate. Black wins!" << endl;
-				break;
+			else if (king_is_alone(game, ' ')){
+				if (checkmate_all(game, white.king, ' ')){
+					cout << "Checkmate. Black wins!" << endl;
+					break;
+				}
 			}
 			else
 				cout << "White's turn: " << endl;
 		}
 		else{
-			if (!checkmate(game, white_king, ' ')){
+			if (checkmate(game, white.king, ' ')){
 				cout << "Checkmate. Black wins!" << endl;
 				break;
 			}
-			else if (checkmate_all(game, black_king, '*') && king_is_alone(game, '*')){
-				cout << "Checkmate. White wins!" << endl;
-				break;
+			else if (king_is_alone(game, '*')){
+				if (checkmate_all(game, black.king, '*')){
+					cout << "Checkmate. White wins!" << endl;
+					break;
+				}
 			}
 			else
 				cout << "Black's turn: " << endl;
@@ -449,32 +501,26 @@ int main(void){
 			string coord2 = action.substr(next_coord, (action.length() - next_coord));
 			Pos pos2 = {(coord2[0] - 'a'), (coord2[1] - '1')};
 
-			cout << "Start: " << pos1.x << ", " << pos1.y << endl;
-			cout << "End: " << pos2.x << ", " << pos2.y << endl;
-
 			string piece = game.getPiece(pos1.x, pos1.y);
 			char player_ID = piece[0], piece_ID = piece[1];
 
 			if (piece_ID == 'P' && turn == player_ID){
-				(turn == ' ') ? white.p.move(game, pos1, pos2) : black.p.move(game, pos1, pos2);
+				(turn == ' ') ? (*white.p).move(game, pos1, pos2) : (*black.p).move(game, pos1, pos2);
 			}
 			else if (piece_ID == 'R' && turn == player_ID){
-				(turn == ' ') ? white.r.move(game, pos1, pos2) : black.r.move(game, pos1, pos2);
+				(turn == ' ') ? (*white.r).move(game, pos1, pos2, white) : (*black.r).move(game, pos1, pos2, black);
 			}
 			else if (piece_ID == 'B' && turn == player_ID){
-				(turn == ' ') ? white.b.move(game, pos1, pos2) : black.b.move(game, pos1, pos2);
+				(turn == ' ') ? (*white.b).move(game, pos1, pos2) : (*black.b).move(game, pos1, pos2);
 			}
 			else if (piece_ID == 'N' && turn == player_ID){
-				(turn == ' ') ? white.n.move(game, pos1, pos2) : black.n.move(game, pos1, pos2);
+				(turn == ' ') ? (*white.n).move(game, pos1, pos2) : (*black.n).move(game, pos1, pos2);
 			}
 			else if (piece_ID == 'Q' && turn == player_ID){
-				(turn == ' ') ? white.q.move(game, pos1, pos2) : black.q.move(game, pos1, pos2);
+				(turn == ' ') ? (*white.q).move(game, pos1, pos2) : (*black.q).move(game, pos1, pos2);
 			}
 			else if (piece_ID == 'K' && turn == player_ID){
-				if (turn == ' ')
-					white.k.move(game, pos1, pos2, white_king);
-				else
-					black.k.move(game, pos1, pos2, black_king);
+				(turn == ' ') ? (*white.k).move(game, pos1, pos2, white) : (*black.k).move(game, pos1, pos2, black);
 			}
 			else
 				cout << "Invalid move" << endl;
